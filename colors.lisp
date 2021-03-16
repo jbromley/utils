@@ -7,6 +7,15 @@
 (in-package #:utils/colors)
 
 ;;; Internal functions
+(defun rgb->gray (r g b)
+  "Convert an RGB color to grayscale. R, G, and B should be floating point
+numbers in the range from 0.0 to 1.0."
+  (let ((y (+ (* 0.299 r) (* 0.587 g) (* 0.114 b))))
+    (format nil "0x~x" (floor (* y 255)))))
+
+(defun rgb2gray-usage ()
+  (format t "Usage: rgb2gray RED GREEN BLUE~%")
+  (format t "       RED, GREEN, and BLUE must be from 00 to FF.~%"))
 
 (defun hsv->rgb (h s v)
   "Convert an HSL color to an RGB string. H is in the range zero to 360.
@@ -36,7 +45,7 @@ range from zero to 100."
 or equal to the HI value."
   (and (>= value lo) (<= value hi)))
 
-(defun usage ()
+(defun hsv2rgb-usage ()
   (format t "Usage: hsv2rgb HUE SATURATION VALUE~%"))
 
 ;;; Exported commands
@@ -48,15 +57,28 @@ or equal to the HI value."
           (v (/ (parse-integer v-str) 100.0)))
      (cond
        ((not (in-range-p h 0 360))
-        (usage)
+        (hsv2rgb-usage)
         (cl-scripting:fail! "Hue must be from 0 to 360, is ~a~%" h-str))
        ((not (in-range-p s 0.0 1.0))
-        (usage)
+        (hsv2rgb-usage)
         (cl-scripting:fail! "Saturation must be from 0 to 100 percent, is ~a~%" s-str))
        ((not (in-range-p v 0.0 1.0))
-        (usage)
+        (hsv2rgb-usage)
         (cl-scripting:fail! "Value must be from 0 to 100 percent, is ~a" v-str))
        (t (format! t "~a" (hsv->rgb-str h s v))
-          (success))))))
+          (cl-scripting:success)))))
+
+ (defun rgb2gray (r-str g-str b-str)
+   (let ((r (/ (parse-integer r-str :radix 16) 255.0))
+         (g (/ (parse-integer g-str :radix 16) 255.0))
+         (b (/ (parse-integer b-str :radix 16) 255.0)))
+     (cond
+       ((not (and (in-range-p r 0.0 1.0)
+                  (in-range-p g 0.0 1.0)
+                  (in-range-p b 0.0 1.0)))
+        (rgb2gray-usage)
+        (cl-scripting:fail! "RGB components must be from 00 to FF"))
+       (t (format! t "~a" (rgb->gray r g b))
+          (cl-scripting:success))))))
 
 (cl-scripting:register-commands :utils/colors)
